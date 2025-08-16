@@ -80,6 +80,8 @@ TEMPLATES = [
 WSGI_APPLICATION = 'core.wsgi.application'
 
 
+import sys
+
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
@@ -93,6 +95,13 @@ DATABASES = {
         'PORT': '5432',
     }
 }
+
+# Use um banco de dados em memória para os testes para evitar a dependência do Postgres
+if 'test' in sys.argv:
+    DATABASES['default'] = {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': ':memory:',
+    }
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
@@ -146,6 +155,7 @@ if DEBUG:
 TWILIO_ACCOUNT_SID = os.environ.get('TWILIO_ACCOUNT_SID')
 TWILIO_AUTH_TOKEN = os.environ.get('TWILIO_AUTH_TOKEN')
 TWILIO_WHATSAPP_NUMBER = os.environ.get('TWILIO_WHATSAPP_NUMBER') # Ex: 'whatsapp:+14155238886'
+TWILIO_INBOX_ID = os.environ.get('TWILIO_INBOX_ID')
 
 # --- Configuração do Chatwoot ---
 # É recomendado usar variáveis de ambiente para dados sensíveis.
@@ -163,3 +173,4 @@ GEMINI_SYSTEM_PROMPT = os.environ.get('GEMINI_SYSTEM_PROMPT')
 
 # --- Configuração do Telegram ---
 TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN')
+TELEGRAM_INBOX_ID = os.environ.get('TELEGRAM_INBOX_ID')
