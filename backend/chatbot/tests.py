@@ -3,6 +3,13 @@ from unittest.mock import patch, MagicMock
 from .services import get_ai_response
 from .models import Message
 
+# Helper class to simulate the Message model without hitting the database
+class MockMessage:
+    def __init__(self, sender, text):
+        self.sender = sender
+        self.text = text
+
+@override_settings(GEMINI_API_KEY="fake-api-key-for-testing")
 class GetAIResponseTests(TestCase):
 
     @patch('chatbot.services.genai')
