@@ -82,10 +82,11 @@ services:
   cloudflared:
     image: cloudflare/cloudflared:latest
     restart: unless-stopped
-    command: tunnel --config /home/nonroot/.cloudflared/config.yml run
-    volumes:
-      # Mapeia TODA a sua pasta de configuração para dentro do container
-      - ~/.cloudflared:/home/nonroot/.cloudflared:z
+    # Para obter o TUNNEL_TOKEN, crie um túnel no painel do Cloudflare
+    # e copie o token que é exibido no comando de instalação.
+    # Exemplo: sudo cloudflared service install <SEU_TUNNEL_TOKEN>
+    # Cole o token na linha de comando abaixo.
+    command: tunnel --no-autoupdate run --token <COLE_SEU_TUNNEL_TOKEN_AQUI>
     networks:
       - minha-rede
     depends_on: # Garante que o django suba antes do túnel tentar se conectar
