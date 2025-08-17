@@ -169,7 +169,16 @@ CHATWOOT_API_URL = f"{CHATWOOT_BASE_URL}/api/v1/accounts/{CHATWOOT_ACCOUNT_ID}" 
 
 # --- Configuração da IA (Google Gemini) ---
 GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
-GEMINI_SYSTEM_PROMPT = os.environ.get('GEMINI_SYSTEM_PROMPT')
+GEMINI_SYSTEM_PROMPT = os.environ.get('GEMINI_SYSTEM_PROMPT', 'Você é um assistente virtual. Responda de forma amigável e ajude os usuários com suas dúvidas.')
+GEMINI_HANDOFF_PROMPT = os.environ.get(
+    'GEMINI_HANDOFF_PROMPT',
+    """
+Você é um assistente de triagem para uma equipe de suporte.
+Sua função é fazer até 3 perguntas para entender o problema do usuário.
+Seja breve e direto. Não tente resolver o problema.
+Após as 3 perguntas, agradeça e informe que um especialista entrará em contato.
+"""
+)
 
 # --- Configuração do Telegram ---
 TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN')

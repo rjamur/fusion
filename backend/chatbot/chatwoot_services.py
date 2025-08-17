@@ -124,3 +124,32 @@ class ChatwootAPI:
 
         logger.info("Nenhuma conversa aberta encontrada, criando uma nova.")
         return self.create_conversation(contact_id, inbox_id, source_id)
+
+    def toggle_conversation_status(self, conversation_id, status="open"):
+        """
+        Altera o status de uma conversa (ex: 'open', 'resolved', 'bot').
+        """
+        logger.info(f"Alterando status da conversa {conversation_id} para '{status}'")
+        endpoint = f"conversations/{conversation_id}/toggle_status"
+        payload = {"status": status}
+        return self._request('POST', endpoint, json=payload)
+
+    def assign_conversation(self, conversation_id, agent_id=None, team_id=None):
+        """
+        Atribui uma conversa a um agente ou a um time.
+        Para desatribuir, passe agent_id=0.
+        """
+        if agent_id is None and team_id is None:
+            logger.warning("Nenhum 'agent_id' ou 'team_id' fornecido para atribuição.")
+            return None
+
+        payload = {}
+        if agent_id is not None:
+            payload['assignee_id'] = agent_id
+            logger.info(f"Atribuindo conversa {conversation_id} ao agente {agent_id}")
+        if team_id is not None:
+            payload['team_id'] = team_id
+            logger.info(f"Atribuindo conversa {conversation_id} ao time {team_id}")
+
+        endpoint = f"conversations/{conversation_id}/assignments"
+        return self._request('POST', endpoint, json=payload)

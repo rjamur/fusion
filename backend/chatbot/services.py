@@ -10,9 +10,10 @@ from twilio_bridge import services as twilio_services
 logger = logging.getLogger(__name__)
 
 
-def get_ai_response(conversation_history):
+def get_ai_response(conversation_history, system_prompt=None):
     """
     Gera uma resposta de IA usando a API do Google Gemini com base no histórico da conversa.
+    Permite a especificação de um prompt de sistema customizado.
     """
     try:
         api_key = settings.GEMINI_API_KEY
@@ -22,8 +23,11 @@ def get_ai_response(conversation_history):
 
         genai.configure(api_key=api_key)
 
+        # Usa o prompt de sistema padrão se nenhum for fornecido
+        if system_prompt is None:
+            system_prompt = settings.GEMINI_SYSTEM_PROMPT
+
         # Formata o histórico para a API do Gemini
-        # A API espera uma lista de dicionários {'role': 'user'/'model', 'parts': [text]}
         formatted_history = [
             {'role': 'user' if msg.sender == 'user' else 'model', 'parts': [msg.text]}
             for msg in conversation_history
@@ -33,9 +37,8 @@ def get_ai_response(conversation_history):
 
         model = genai.GenerativeModel(
             'gemini-1.5-flash-latest',
-            system_instruction=settings.GEMINI_SYSTEM_PROMPT
+            system_instruction=system_prompt
         )
-        # O histórico já contém a última mensagem, então usamos start_chat para histórico e send_message para a última mensagem.
         chat = model.start_chat(history=formatted_history[:-1])
         response = chat.send_message(formatted_history[-1]['parts'][0])
 
