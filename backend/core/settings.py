@@ -88,9 +88,9 @@ import sys
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'chatwoot', # Alterado para usar o mesmo DB do Chatwoot
-        'USER': 'postgres',
-        'PASSWORD': 'senha_do_postgres',
+        'NAME': os.environ.get('POSTGRES_DB', 'chatwoot'),
+        'USER': os.environ.get('POSTGRES_USER', 'postgres'),
+        'PASSWORD': os.environ.get('POSTGRES_PASSWORD'),
         'HOST': 'postgres',  # O nome do nosso serviço no docker-compose
         'PORT': '5432',
     }

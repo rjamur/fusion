@@ -44,11 +44,7 @@ services:
       - '127.0.0.1:5432:5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    environment:
-      - POSTGRES_DB=chatwoot
-      - POSTGRES_USER=postgres
-      # Please provide your own password.
-      - POSTGRES_PASSWORD=senha_do_postgres
+    env_file: .env
     networks:
       - minha-rede
  
@@ -71,8 +67,7 @@ services:
     command: python manage.py runserver 0.0.0.0:8000
     volumes:
       - ./backend:/app
-    env_file:
-      - ./.env.local
+    env_file: .env
     ports:
       - '127.0.0.1:8000:8000'
     depends_on:
@@ -100,5 +95,3 @@ volumes:
 networks:
   minha-rede:
     driver: bridge
-
-
