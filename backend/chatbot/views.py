@@ -60,7 +60,7 @@ def webhook_handler(request):
             return JsonResponse(response_data, safe=False)
         else:
             # Lógica de IA para continuar a conversa
-            system_prompt = settings.GEMINI_HANDOFF_PROMPT
+            system_prompt = settings.OPENAI_MEDICAL_PROMPT
             bot_response_content = services.get_ai_response(conversation_history, system_prompt=system_prompt)
 
             Message.objects.create(

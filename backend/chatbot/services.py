@@ -1,6 +1,5 @@
 import logging
-
-import google.generativeai as genai
+import openai
 from django.conf import settings
 
 # Importa os serviços específicos de cada canal
@@ -12,41 +11,40 @@ logger = logging.getLogger(__name__)
 
 def get_ai_response(conversation_history, system_prompt=None):
     """
-    Gera uma resposta de IA usando a API do Google Gemini com base no histórico da conversa.
+    Gera uma resposta de IA usando a API da OpenAI com base no histórico da conversa.
     Permite a especificação de um prompt de sistema customizado.
     """
     try:
-        api_key = settings.GEMINI_API_KEY
+        api_key = settings.OPENAI_API_KEY
         if not api_key:
-            logger.error("A variável de ambiente GEMINI_API_KEY não está configurada.")
+            logger.error("A variável de ambiente OPENAI_API_KEY não está configurada.")
             return "Desculpe, estou com um problema de configuração interna."
 
-        genai.configure(api_key=api_key)
+        openai.api_key = api_key
 
-        # Usa o prompt de sistema padrão se nenhum for fornecido
         if system_prompt is None:
-            system_prompt = settings.GEMINI_SYSTEM_PROMPT
+            system_prompt = "Você é um assistente virtual."
 
-        # Formata o histórico para a API do Gemini
-        formatted_history = [
-            {'role': 'user' if msg.sender == 'user' else 'model', 'parts': [msg.text]}
-            for msg in conversation_history
-        ]
+        # Formata o histórico para a API da OpenAI
+        messages = [{"role": "system", "content": system_prompt}]
+        for msg in conversation_history:
+            role = "user" if msg.sender == 'user' else "assistant"
+            messages.append({"role": role, "content": msg.text})
 
-        logger.info(f"Enviando para a API do Gemini. Histórico: {formatted_history}")
+        logger.info(f"Enviando para a API da OpenAI. Mensagens: {messages}")
 
-        model = genai.GenerativeModel(
-            'gemini-1.5-flash-latest',
-            system_instruction=system_prompt
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=messages,
+            max_tokens=150
         )
-        chat = model.start_chat(history=formatted_history[:-1])
-        response = chat.send_message(formatted_history[-1]['parts'][0])
 
-        logger.info(f"Resposta recebida da API do Gemini: '{response.text}'")
+        bot_response = response.choices[0].message['content'].strip()
+        logger.info(f"Resposta recebida da API da OpenAI: '{bot_response}'")
 
-        return response.text
+        return bot_response
     except Exception as e:
-        logger.error(f"Erro ao chamar a API do Gemini: {e}")
+        logger.error(f"Erro ao chamar a API da OpenAI: {e}")
         return "Desculpe, estou com problemas para me conectar com minha inteligência. Tente novamente mais tarde."
 
 

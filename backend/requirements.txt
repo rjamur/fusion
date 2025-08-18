@@ -1,7 +1,7 @@
 Django>=5.0
-google-generativeai
 requests
 gunicorn
 psycopg2-binary
 django-extensions
 twilio
+openai
