@@ -28,7 +28,9 @@ services:
 
     restart: always
     networks:
-      - minha-rede
+      minha-rede:
+        aliases:
+          - rails.local
  
   sidekiq:
     <<: *base
@@ -90,7 +92,9 @@ services:
       postgres:
         condition: service_healthy
     networks:
-      - minha-rede
+      minha-rede:
+        aliases:
+          - django.local
  
   cloudflared:
     image: cloudflare/cloudflared:latest

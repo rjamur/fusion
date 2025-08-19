@@ -39,6 +39,9 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 
+    # Terceiro
+    'rest_framework',
+
     # Aplicações de terceiros
     'django_extensions',  # Para usar o shell_plus e outras funcionalidades úteis
     # Nossas Apps
