@@ -183,10 +183,9 @@ Após as 3 perguntas, agradeça e informe que um especialista entrará em contat
 """
 )
 
-# --- Configuração da IA (OpenAI) ---
-OPENAI_API_KEY = os.environ.get('OPENAI_WHATS_BOT_TOKEN')
-OPENAI_MEDICAL_PROMPT = os.environ.get(
-    'OPENAI_MEDICAL_PROMPT',
+# --- Configuração de IA (Prompt Médico Genérico) ---
+AI_MEDICAL_PROMPT = os.environ.get(
+    'AI_MEDICAL_PROMPT',
     """
 Você é um assistente virtual de um consultório médico. Sua principal função é agendar, remarcar e cancelar consultas.
 

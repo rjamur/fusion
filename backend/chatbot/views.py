@@ -61,8 +61,7 @@ def webhook_handler(request):
         # 3. Lógica de transferência: após 3 respostas do bot, transfere para um humano
         bot_message_count = conversation_history.filter(sender='bot').count()
         chatwoot_api = ChatwootAPI()
-
-        if bot_message_count >= 3:
+        if False: #bot_message_count >= 3:
             final_message = "Obrigado por suas respostas. Estou transferindo você para um de nossos atendentes."
             logger.info(f"Limite de mensagens atingido. Transferindo conversa {conversation_id} para um atendente.")
             Message.objects.create(
@@ -74,8 +73,9 @@ def webhook_handler(request):
             return JsonResponse({'status': 'ok, transferred to human'}, status=200)
         else:
             # 4. Se não for transferir, chama a IA para gerar uma resposta
-            system_prompt = settings.OPENAI_MEDICAL_PROMPT
-            resposta_do_bot = services.get_ai_response(conversation_history, system_prompt=system_prompt)
+            # O conteúdo do prompt define o comportamento do bot. A função get_ai_response agora usa Gemini.
+            ai_medical_prompt = settings.AI_MEDICAL_PROMPT
+            resposta_do_bot = services.get_ai_response(conversation_history, system_prompt=ai_medical_prompt)
             Message.objects.create(
                 conversation_id=str(conversation_id), channel='chatwoot', sender='bot', text=resposta_do_bot
             )
