@@ -8,12 +8,56 @@ from . import services
 from .models import Message
 from .chatwoot_services import ChatwootAPI
 
+
+# na sua views.py
+import hmac
+import hashlib
+import json
+from django.conf import settings
+from django.http import HttpResponse, HttpResponseForbidden
+from django.views.decorators.csrf import csrf_exempt # Importante para webhooks de APIs externas
+
 @csrf_exempt
 def webhook_handler(request):
+    # PASSO 1: Pegar os dados da requisição
+    chatwoot_signature = request.headers.get('X-Chatwoot-Hmac-Sha256', '')
+    request_body_bytes = request.body  # O corpo RAW em bytes
+    secret_token = getattr(settings, 'CHATWOOT_BOT_TOKEN', '')
+
+    # PASSO 2: Calcular sua própria assinatura
+    digest_maker = hmac.new(
+        secret_token.encode('utf-8'),
+        msg=request_body_bytes,
+        digestmod=hashlib.sha256
+    )
+    calculated_signature = digest_maker.hexdigest()
+
+    # PASSO 3: IMPRIMIR TUDO PARA DEBUGAR!
+    print("--- INICIANDO DEBUG DO WEBHOOK CHATWOOT ---")
+    print(f"Segredo usado pelo Django: '{secret_token}'")
+    print(f"Assinatura recebida do Chatwoot: '{chatwoot_signature}'")
+    print(f"Assinatura calculada pelo Django: '{calculated_signature}'")
+
+    # PASSO 4: Comparar as duas de forma segura
+    if hmac.compare_digest(calculated_signature, chatwoot_signature):
+        print(">>> SUCESSO: Assinatura válida! Requisição permitida.")
+        # Coloque sua lógica de processamento do bot aqui
+        # payload = json.loads(request_body_bytes)
+        return HttpResponse("Webhook processado com sucesso.", status=200)
+    else:
+        print(">>> ERRO: Assinatura inválida! Requisição rejeitada.")
+        return HttpResponseForbidden('Assinatura HMAC inválida.')
+
+
+@csrf_exempt
+def webhook_handler_bak(request):
     """
     Função que recebe as requisições de webhook do Chatwoot.
     """
     bot_token_header = request.headers.get('api_access_token')
+    secret = getattr(settings, 'CHATWOOT_BOT_TOKEN', '!!! NÃO ENCONTRADO !!!')
+    print(f"DEBUG: Segredo carregado no Django: '{secret}'")
+
     if not settings.CHATWOOT_BOT_TOKEN or bot_token_header != settings.CHATWOOT_BOT_TOKEN:
         return JsonResponse({'error': 'Unauthorized'}, status=401)
 
