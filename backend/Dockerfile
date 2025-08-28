@@ -1,26 +1,53 @@
-# Usar uma imagem oficial do Python como base
-FROM python:3.12-slim
+# --- Estágio de Build ---
+# Usamos uma imagem completa para ter as ferramentas de compilação necessárias para algumas dependências
+FROM python:3.12-slim as builder
 
-# Definir variáveis de ambiente para Python
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
-
-# Definir o diretório de trabalho dentro do contêiner
+# Define o diretório de trabalho
 WORKDIR /app
 
+# Instala dependências do sistema para compilar pacotes como psycopg2
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
 
-# Copiar e instalar as dependências primeiro (otimiza o cache do Docker)
-# O contexto do build foi definido como './backend' no docker-compose.yml.
-# Portanto, os caminhos aqui são relativos a essa pasta.
+# Copia o arquivo de dependências primeiro para aproveitar o cache do Docker
 COPY requirements.txt .
-# Atualiza o pip e instala as dependências. --no-cache-dir é bom para manter a imagem pequena.
-RUN pip install --upgrade pip && pip install --no-cache-dir -r requirements.txt
+
+# Instala as dependências Python
+RUN pip install --no-cache-dir -r requirements.txt
 
 
+# --- Estágio Final/Produção ---
+# Usamos uma imagem 'slim' que é muito menor e mais segura
+FROM python:3.12-slim
 
-# Expõe a porta que o Gunicorn vai usar
+WORKDIR /app
 
-#EXPOSE 8000
+# Cria um usuário e grupo não-root para a aplicação, por segurança
+RUN addgroup --system app && adduser --system --group app
 
-# O comando final para iniciar a aplicação em produção com Gunicorn
-#CMD ["gunicorn", "core.wsgi:application", "--bind", "0.0.0.0:8000"]
+# Instala dependências de sistema necessárias para a execução (ex: netcat para o entrypoint)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpq5 \
+    netcat-openbsd \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copia as dependências instaladas do estágio de build
+COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
+
+# Copia o código da aplicação
+COPY . .
+
+# Garante que o script de entrypoint seja executável
+RUN chmod +x /app/entrypoint.sh
+
+# Muda a propriedade dos arquivos para o usuário não-root
+RUN chown -R app:app /app
+
+# Muda para o usuário não-root
+USER app
+
+# Define o entrypoint que será executado quando o contêiner iniciar
+ENTRYPOINT ["/app/entrypoint.sh"]

@@ -1,5 +1,4 @@
 import logging
-
 import google.generativeai as genai
 from django.conf import settings
 
@@ -10,9 +9,10 @@ from twilio_bridge import services as twilio_services
 logger = logging.getLogger(__name__)
 
 
-def get_ai_response(conversation_history):
+def get_ai_response(conversation_history, system_prompt=None):
     """
     Gera uma resposta de IA usando a API do Google Gemini com base no histórico da conversa.
+    Permite a especificação de um prompt de sistema customizado.
     """
     try:
         api_key = settings.GEMINI_API_KEY
@@ -22,28 +22,39 @@ def get_ai_response(conversation_history):
 
         genai.configure(api_key=api_key)
 
+        if system_prompt is None:
+            system_prompt = "Você é um assistente virtual."
+
         # Formata o histórico para a API do Gemini
-        # A API espera uma lista de dicionários {'role': 'user'/'model', 'parts': [text]}
-        formatted_history = [
-            {'role': 'user' if msg.sender == 'user' else 'model', 'parts': [msg.text]}
-            for msg in conversation_history
-        ]
+        # O Gemini lida com o histórico como uma lista de turnos de 'user' e 'model'
+        history_for_gemini = []
+        for msg in conversation_history:
+            role = "user" if msg.sender == 'user' else "model"
+            history_for_gemini.append({"role": role, "parts": [msg.text]})
 
-        logger.info(f"Enviando para a API do Gemini. Histórico: {formatted_history}")
+        # A API de chat do Gemini espera que a mensagem atual do usuário seja enviada separadamente do histórico.
+        # Se o histórico não estiver vazio, removemos a última mensagem (que é o prompt atual) para enviá-la.
+        current_prompt_text = "Olá"  # Fallback
+        if history_for_gemini:
+            last_message = history_for_gemini.pop()
+            current_prompt_text = last_message['parts'][0]
 
+        # O system_prompt é passado na inicialização do modelo
         model = genai.GenerativeModel(
             'gemini-1.5-flash-latest',
-            system_instruction=settings.GEMINI_SYSTEM_PROMPT
+            system_instruction=system_prompt
         )
-        # O histórico já contém a última mensagem, então usamos start_chat para histórico e send_message para a última mensagem.
-        chat = model.start_chat(history=formatted_history[:-1])
-        response = chat.send_message(formatted_history[-1]['parts'][0])
+        chat = model.start_chat(history=history_for_gemini)
 
-        logger.info(f"Resposta recebida da API do Gemini: '{response.text}'")
+        logger.info(f"Enviando para a API do Gemini. Prompt: '{current_prompt_text}'")
+        response = chat.send_message(current_prompt_text)
 
-        return response.text
+        bot_response = response.text.strip()
+        logger.info(f"Resposta recebida da API do Gemini: '{bot_response}'")
+
+        return bot_response
     except Exception as e:
-        logger.error(f"Erro ao chamar a API do Gemini: {e}")
+        logger.error(f"Erro ao chamar a API do Gemini: {e}", exc_info=True)
         return "Desculpe, estou com problemas para me conectar com minha inteligência. Tente novamente mais tarde."
 
 

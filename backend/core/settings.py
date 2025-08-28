@@ -24,9 +24,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.environ.get('SECRET_KEY', 'uma-chave-secreta-padrao-para-desenvolvimento')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# A conversão para booleano é importante. 'False' como string é True.
+DEBUG = os.environ.get('DEBUG', 'True').lower() in ('true', '1', 't')
 
-ALLOWED_HOSTS = ['*']
+# Em produção, esta lista deve conter o seu domínio. Ex: 'meusite.com,www.meusite.com'
+# O valor é lido do .env e transformado em uma lista de strings.
+ALLOWED_HOSTS_STRING = os.environ.get('ALLOWED_HOSTS', '*')
+ALLOWED_HOSTS = [host.strip() for host in ALLOWED_HOSTS_STRING.split(',') if host.strip()]
 
 
 # Application definition
@@ -38,6 +42,9 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+
+    # Terceiro
+    'rest_framework',
 
     # Aplicações de terceiros
     'django_extensions',  # Para usar o shell_plus e outras funcionalidades úteis
@@ -80,19 +87,28 @@ TEMPLATES = [
 WSGI_APPLICATION = 'core.wsgi.application'
 
 
+import sys
+
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'chatwoot', # Alterado para usar o mesmo DB do Chatwoot
-        'USER': 'postgres',
-        'PASSWORD': 'senha_do_postgres',
+        'NAME': os.environ.get('POSTGRES_DB', 'chatwoot'),
+        'USER': os.environ.get('POSTGRES_USER', 'postgres'),
+        'PASSWORD': os.environ.get('POSTGRES_PASSWORD'),
         'HOST': 'postgres',  # O nome do nosso serviço no docker-compose
         'PORT': '5432',
     }
 }
+
+# Use um banco de dados em memória para os testes para evitar a dependência do Postgres
+if 'test' in sys.argv:
+    DATABASES['default'] = {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': ':memory:',
+    }
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
@@ -146,6 +162,7 @@ if DEBUG:
 TWILIO_ACCOUNT_SID = os.environ.get('TWILIO_ACCOUNT_SID')
 TWILIO_AUTH_TOKEN = os.environ.get('TWILIO_AUTH_TOKEN')
 TWILIO_WHATSAPP_NUMBER = os.environ.get('TWILIO_WHATSAPP_NUMBER') # Ex: 'whatsapp:+14155238886'
+TWILIO_INBOX_ID = os.environ.get('TWILIO_INBOX_ID')
 
 # --- Configuração do Chatwoot ---
 # É recomendado usar variáveis de ambiente para dados sensíveis.
@@ -159,7 +176,43 @@ CHATWOOT_API_URL = f"{CHATWOOT_BASE_URL}/api/v1/accounts/{CHATWOOT_ACCOUNT_ID}" 
 
 # --- Configuração da IA (Google Gemini) ---
 GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
-GEMINI_SYSTEM_PROMPT = os.environ.get('GEMINI_SYSTEM_PROMPT')
+GEMINI_SYSTEM_PROMPT = os.environ.get('GEMINI_SYSTEM_PROMPT', 'Você é um assistente virtual. Responda de forma amigável e ajude os usuários com suas dúvidas.')
+GEMINI_HANDOFF_PROMPT = os.environ.get(
+    'GEMINI_HANDOFF_PROMPT',
+    """
+Você é um assistente de triagem para uma equipe de suporte.
+Sua função é fazer até 3 perguntas para entender o problema do usuário.
+Seja breve e direto. Não tente resolver o problema.
+Após as 3 perguntas, agradeça e informe que um especialista entrará em contato.
+"""
+)
+
+# --- Configuração de IA (Prompt Médico Genérico) ---
+AI_MEDICAL_PROMPT = os.environ.get(
+    'AI_MEDICAL_PROMPT',
+    """
+Você é um assistente virtual de um consultório médico. Sua principal função é agendar, remarcar e cancelar consultas.
+
+**Agendamento:**
+- Pergunte o nome completo do paciente.
+- Pergunte a data de nascimento.
+- Ofereça os horários disponíveis (ex: 14:00, 15:00, 16:00).
+- Confirme o agendamento.
+
+**Remarcação/Cancelamento:**
+- Peça o nome completo e a data da consulta original.
+- Cancele a consulta e/ou ofereça novos horários.
+
+**Outras Informações:**
+- Endereço: Rua Fictícia, 123, Bairro dos Sonhos.
+- Horário de Funcionamento: Segunda a Sexta, das 08:00 às 18:00.
+- Especialidades: Clínica Geral, Cardiologia, Pediatria.
+
+Seja sempre cordial, profissional e eficiente. Não forneça diagnósticos ou conselhos médicos.
+"""
+)
+
 
 # --- Configuração do Telegram ---
 TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN')
+TELEGRAM_INBOX_ID = os.environ.get('TELEGRAM_INBOX_ID')
