@@ -24,9 +24,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.environ.get('SECRET_KEY', 'uma-chave-secreta-padrao-para-desenvolvimento')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# A conversão para booleano é importante. 'False' como string é True.
+DEBUG = os.environ.get('DEBUG', 'True').lower() in ('true', '1', 't')
 
-ALLOWED_HOSTS = ['*']
+# Em produção, esta lista deve conter o seu domínio. Ex: 'meusite.com,www.meusite.com'
+# O valor é lido do .env e transformado em uma lista de strings.
+ALLOWED_HOSTS_STRING = os.environ.get('ALLOWED_HOSTS', '*')
+ALLOWED_HOSTS = [host.strip() for host in ALLOWED_HOSTS_STRING.split(',') if host.strip()]
 
 
 # Application definition

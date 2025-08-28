@@ -1,11 +1,44 @@
 
-# Ambiente Virtual
-venv/
+# Arquivos de Ambiente e Segredos
+# Nunca comite arquivos com senhas ou chaves de API!
+.env*
+!.env.example
 
-# Arquivos de cache do Python
+# Dependências e Ambientes Virtuais
+venv/
+env/
+
+# Cache do Python
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
 
-# Arquivos de ambiente
-.env
-.env.local
+# Arquivos de Build e Distribuição
+build/
+dist/
+*.egg-info/
+
+# Arquivos de Banco de Dados
+*.sqlite3
+db.sqlite3
+
+# Arquivos de Mídia e Estáticos (gerados em desenvolvimento)
+/media/
+/static/
+
+# Logs
+*.log
+
+# Arquivos de IDE e Editor
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+
+# Arquivos de Sistema Operacional
+.DS_Store
+Thumbs.db
+
+# Docker
+docker-compose.override.yml
