@@ -103,8 +103,6 @@ services:
     depends_on:
       - django 
       - rails
-    env_file:
-      - .env
 
 volumes:
   storage_data:
