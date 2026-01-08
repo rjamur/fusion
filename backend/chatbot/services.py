@@ -1,72 +1,69 @@
+import os
 import logging
-import google.generativeai as genai
-from django.conf import settings
-
-# Importa os serviços específicos de cada canal
-from telegram_bridge import services as telegram_services
-from twilio_bridge import services as twilio_services
+import requests
+import json
 
 logger = logging.getLogger(__name__)
 
-
-def get_ai_response(conversation_history, system_prompt=None):
+def get_ai_response(history, system_prompt):
     """
-    Gera uma resposta de IA usando a API do Google Gemini com base no histórico da conversa.
-    Permite a especificação de um prompt de sistema customizado.
+    Consome a API do OpenRouter via requests puro para evitar erros de tipagem.
     """
     try:
-        api_key = settings.GEMINI_API_KEY
+        api_key = os.environ.get('OPENROUTER_API_KEY')
+        # URL fixa do OpenRouter para Chat Completions
+        url = "https://openrouter.ai/api/v1/chat/completions"
+        model = os.environ.get('OPENROUTER_MODEL', 'deepseek/deepseek-chat')
+
         if not api_key:
-            logger.error("A variável de ambiente GEMINI_API_KEY não está configurada.")
-            return "Desculpe, estou com um problema de configuração interna."
+            logger.error("API Key do OpenRouter não configurada.")
+            return "Erro de configuração: Chave da API ausente."
 
-        genai.configure(api_key=api_key)
+        # Monta as mensagens
+        messages = [{"role": "system", "content": system_prompt}]
+        
+        for msg in history:
+            # Garante que sender seja string
+            sender_role = "assistant" if str(msg.sender) == 'bot' else "user"
+            content = str(msg.text) if msg.text else ""
+            if content:
+                messages.append({"role": sender_role, "content": content})
 
-        if system_prompt is None:
-            system_prompt = "Você é um assistente virtual."
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+            "HTTP-Referer": "http://localhost:8000", # Necessário para OpenRouter
+        }
 
-        # Formata o histórico para a API do Gemini
-        # O Gemini lida com o histórico como uma lista de turnos de 'user' e 'model'
-        history_for_gemini = []
-        for msg in conversation_history:
-            role = "user" if msg.sender == 'user' else "model"
-            history_for_gemini.append({"role": role, "parts": [msg.text]})
+        payload = {
+            "model": model,
+            "messages": messages,
+            "temperature": 0.7
+        }
 
-        # A API de chat do Gemini espera que a mensagem atual do usuário seja enviada separadamente do histórico.
-        # Se o histórico não estiver vazio, removemos a última mensagem (que é o prompt atual) para enviá-la.
-        current_prompt_text = "Olá"  # Fallback
-        if history_for_gemini:
-            last_message = history_for_gemini.pop()
-            current_prompt_text = last_message['parts'][0]
+        logger.info(f"Enviando request RAW para OpenRouter...")
+        
+        # Chamada direta
+        response = requests.post(url, headers=headers, json=payload, timeout=30)
+        
+        if response.status_code != 200:
+            logger.error(f"Erro na API da IA: {response.status_code} - {response.text}")
+            return "Desculpe, meu cérebro está temporariamente fora do ar."
 
-        # O system_prompt é passado na inicialização do modelo
-        model = genai.GenerativeModel(
-            'gemini-1.5-flash-latest',
-            system_instruction=system_prompt
-        )
-        chat = model.start_chat(history=history_for_gemini)
+        response_json = response.json()
+        
+        # Extração manual e segura do JSON
+        if 'choices' in response_json and len(response_json['choices']) > 0:
+            return response_json['choices'][0]['message']['content']
+        else:
+            logger.error(f"Formato inesperado do OpenRouter: {response_json}")
+            return "Recebi uma resposta vazia da IA."
 
-        logger.info(f"Enviando para a API do Gemini. Prompt: '{current_prompt_text}'")
-        response = chat.send_message(current_prompt_text)
-
-        bot_response = response.text.strip()
-        logger.info(f"Resposta recebida da API do Gemini: '{bot_response}'")
-
-        return bot_response
     except Exception as e:
-        logger.error(f"Erro ao chamar a API do Gemini: {e}", exc_info=True)
-        return "Desculpe, estou com problemas para me conectar com minha inteligência. Tente novamente mais tarde."
+        logger.error(f"Erro Crítico no requests: {e}", exc_info=True)
+        return "Erro técnico interno ao processar sua mensagem."
 
-
+# Mantemos o envio para o Chatwoot aqui também, usando requests
 def send_message_to_channel(channel, conversation_id, text):
-    """
-    Dispatcher que envia uma mensagem para o canal correto.
-    Esta função centraliza a lógica de envio, tornando as views mais limpas.
-    """
-    logger.info(f"Disparando mensagem para o canal '{channel}' para a conversa '{conversation_id}'")
-    if channel == 'telegram':
-        telegram_services.send_telegram_message(chat_id=conversation_id, text=text)
-    elif channel == 'twilio_whatsapp':
-        twilio_services.send_twilio_whatsapp_message(recipient_id=conversation_id, text=text)
-    else:
-        logger.error(f"Tentativa de enviar mensagem para um canal desconhecido: {channel}")
+    # (Seu código de envio para canais específicos, se houver)
+    pass

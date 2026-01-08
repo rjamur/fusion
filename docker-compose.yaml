@@ -1,6 +1,6 @@
 services:
   base: &base
-    image: chatwoot/chatwoot:latest
+    image: chatwoot/chatwoot:v4.8.0
     volumes:
       - storage_data:/app/storage
     env_file:

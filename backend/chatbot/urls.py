@@ -5,5 +5,5 @@ app_name = 'chatbot'
 
 urlpatterns = [
     # This is the endpoint that the Chatwoot Agent Bot will call.
-    path('webhook/chatwoot/', views.webhook_handler, name='chatwoot_webhook'),
+    path('webhook/chatwoot/', views.chatwoot_webhook, name='chatwoot_webhook'),
 ]

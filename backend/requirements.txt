@@ -6,3 +6,4 @@ django-extensions
 google-generativeai
 twilio
 djangorestframework
+openai>=1.0.0
